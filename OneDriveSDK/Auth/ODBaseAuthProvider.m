@@ -93,25 +93,32 @@
                                     error:(NSError *)error
                  presentingViewController:(UIViewController *)presentingViewController
                                completion:(AuthCompletion)completionHandler
-{
-    // Always remove the auth view when we finished loading.
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [presentingViewController dismissViewControllerAnimated:NO completion:nil];
-    });
-    
+{    
     if (!error){
         [self.logger logWithLevel:ODLogDebug message:@"Response from auth service", endURL];
         NSString *code = [ODAuthHelper codeFromCodeFlowRedirectURL:endURL];
         if (code){
-            [self getTokenWithCode:code completion:completionHandler];
+            [self getTokenWithCode:code completion:^(NSError *error) {
+                
+                completionHandler(error);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [presentingViewController dismissViewControllerAnimated:NO completion:nil];
+                });
+            }];
         }
         else{
             [self.logger logWithLevel:ODLogError message:@"Error reading code from response"];
             completionHandler([self errorFromURL:endURL]);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [presentingViewController dismissViewControllerAnimated:NO completion:nil];
+            });
         }
     }
     else{
         completionHandler(error);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [presentingViewController dismissViewControllerAnimated:NO completion:nil];
+        });
     }
 }
 
